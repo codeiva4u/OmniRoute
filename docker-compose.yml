@@ -36,7 +36,7 @@ services:
 
   omniroute-web:
     <<: *common
-    image: diegosouzapw/omniroute:latest-web
+    image: diegosouzapw/omniroute:latest
     ports:
       - "${DASHBOARD_PORT:-20128}:${DASHBOARD_PORT:-20128}"
       - "${API_PORT:-20129}:${API_PORT:-20129}"
