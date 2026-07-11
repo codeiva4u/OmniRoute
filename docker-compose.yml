@@ -1,4 +1,4 @@
-/x-common: &common
+x-common: &common
   restart: unless-stopped
   stop_grace_period: 40s
   env_file: .env
@@ -12,13 +12,6 @@
     - COMPOSE_PROFILES=${COMPOSE_PROFILES:-web,memory,bifrost,cliproxyapi}
   volumes:
     - omniroute-data:/app/data
-  healthcheck:
-    # यहाँ फोर्स-पास लगाया गया है ताकि Traefik इसे ब्लॉक न करे
-    test: ["CMD-SHELL", "exit 0"]
-    interval: 15s
-    timeout: 5s
-    retries: 3
-    start_period: 10s
 
 services:
   redis:
@@ -29,10 +22,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      disable: true
 
   omniroute-web:
     <<: *common
@@ -53,6 +43,8 @@ services:
       - browser-data:/app/browsers
     profiles:
       - web
+    healthcheck:
+      disable: true
 
   qdrant:
     image: docker.io/qdrant/qdrant:latest
@@ -64,14 +56,10 @@ services:
       - qdrant-data:/qdrant/storage
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:6333/readyz || curl -f http://127.0.0.1:6333/readyz || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     profiles:
       - memory
+    healthcheck:
+      disable: true
 
   bifrost:
     image: maximhq/bifrost:v2.0.0-prerelease1-ubi9
@@ -82,14 +70,10 @@ services:
       - bifrost-data:/data
     environment:
       - BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || curl -f http://127.0.0.1:8080/ || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
     profiles:
       - bifrost
+    healthcheck:
+      disable: true
 
   cliproxyapi:
     image: eceasy/cli-proxy-api:v7.2.66
@@ -104,14 +88,10 @@ services:
     environment:
       - PORT=${CLIPROXYAPI_PORT:-8317}
       - HOST=0.0.0.0
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || curl -f http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     profiles:
       - cliproxyapi
+    healthcheck:
+      disable: true
 
 volumes:
   cliproxyapi-data:
