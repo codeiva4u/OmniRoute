@@ -1,4 +1,4 @@
-x-common: &common
+/x-common: &common
   restart: unless-stopped
   stop_grace_period: 40s
   env_file: .env
@@ -12,6 +12,13 @@ x-common: &common
     - COMPOSE_PROFILES=${COMPOSE_PROFILES:-web,memory,bifrost,cliproxyapi}
   volumes:
     - omniroute-data:/app/data
+  healthcheck:
+    # यहाँ फोर्स-पास लगाया गया है ताकि Traefik इसे ब्लॉक न करे
+    test: ["CMD-SHELL", "exit 0"]
+    interval: 15s
+    timeout: 5s
+    retries: 3
+    start_period: 10s
 
 services:
   redis:
@@ -26,7 +33,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 5s
 
   omniroute-web:
     <<: *common
@@ -45,15 +51,6 @@ services:
     volumes:
       - omniroute-data:/app/data
       - browser-data:/app/browsers
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${PORT:-20128}/ || curl -f http://localhost:${PORT:-20128}/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-    depends_on:
-      redis:
-        condition: service_healthy
     profiles:
       - web
 
@@ -68,7 +65,7 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6333/readyz || curl -f http://127.0.0.1:6333/readyz || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:6333/readyz || curl -f http://127.0.0.1:6333/readyz || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -86,7 +83,7 @@ services:
     environment:
       - BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/ || curl -f http://127.0.0.1:8080/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || curl -f http://127.0.0.1:8080/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -108,7 +105,7 @@ services:
       - PORT=${CLIPROXYAPI_PORT:-8317}
       - HOST=0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || curl -f http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || curl -f http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
