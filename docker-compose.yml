@@ -12,26 +12,20 @@ x-common: &common
     - COMPOSE_PROFILES=web
   volumes:
     - omniroute-data:/app/data
+  # Health check को DISABLE कर दिया - यही problem है
 
 services:
   redis:
     image: docker.io/library/redis:latest
-    container_name: omniroute-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
     command: redis-server --save 60 1 --loglevel warning
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
   omniroute:
     <<: *common
-    container_name: omniroute
     image: diegosouzapw/omniroute:latest-web
     ports:
       - "20128:20128"
@@ -48,12 +42,6 @@ services:
     volumes:
       - omniroute-data:/app/data
       - browser-data:/app/browsers
-    healthcheck:
-      test: ["CMD-SHELL", "sleep 5 && curl -f http://127.0.0.1:20128 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 120s
     profiles:
       - web
 
