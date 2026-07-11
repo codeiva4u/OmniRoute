@@ -64,9 +64,9 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:6333/readyz"]
+      test: ["CMD-SHELL", "curl -s http://127.0.0.1:6333/readyz > /dev/null || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 10s
     profiles:
@@ -82,9 +82,9 @@ services:
     environment:
       - BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8080/v1/models || exit 1"]
+      test: ["CMD-SHELL", "curl -s http://127.0.0.1:8080/v1/models > /dev/null || exit 1"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 15s
     profiles:
@@ -104,9 +104,9 @@ services:
       - PORT=${CLIPROXYAPI_PORT:-8317}
       - HOST=0.0.0.0
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 1"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
       start_period: 10s
     profiles:
