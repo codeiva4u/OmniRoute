@@ -1,4 +1,4 @@
-# ──────────────────────────────────────────────────────────────────────
+/# ──────────────────────────────────────────────────────────────────────
 #  OmniRoute — Docker Compose (Coolify 100% Green Healthchecks)
 # ──────────────────────────────────────────────────────────────────────
 
@@ -12,7 +12,6 @@ x-common: &common
     - API_PORT=${API_PORT:-20129}
     - API_HOST=${API_HOST:-0.0.0.0}
     - REDIS_URL=${REDIS_URL:-redis://redis:6379}
-    - COMPOSE_PROFILES=${COMPOSE_PROFILES:-host,web,memory,bifrost,cliproxyapi}
   volumes:
     - ./data:/app/data
 
@@ -37,6 +36,9 @@ services:
   omniroute-host:
     <<: *common
     image: diegosouzapw/omniroute:latest
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "${DASHBOARD_PORT:-20128}:${DASHBOARD_PORT:-20128}"
       - "${API_PORT:-20129}:${API_PORT:-20129}"
@@ -50,6 +52,7 @@ services:
       - CLI_EXTRA_PATHS=/host-local/bin:/host-node/bin
       - CLI_CONFIG_HOME=/host-home
       - CLI_ALLOW_CONFIG_WRITES=true
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
     volumes:
       - ./data:/app/data
       - ~/.local/bin:/host-local/bin:ro
@@ -60,11 +63,11 @@ services:
       - ~/.cursor:/host-home/.cursor:rw
       - ~/.config/cursor:/host-home/.config/cursor:rw
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${DASHBOARD_PORT:-20128}/ >/dev/null 2>&1 || wget -q --spider http://127.0.0.1:${DASHBOARD_PORT:-20128}/ 2>/dev/null || (exec 3<>/dev/tcp/127.0.0.1/${DASHBOARD_PORT:-20128}) 2>/dev/null || exit 1"]
+      test: ["CMD-SHELL", "timeout 5 bash -c 'echo > /dev/tcp/127.0.0.1/20128' 2>/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 6
-      start_period: 60s
+      retries: 5
+      start_period: 90s
     profiles:
       - host
 
@@ -80,10 +83,10 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:6333/readyz >/dev/null 2>&1 || wget -q --spider http://127.0.0.1:6333/readyz 2>/dev/null || (exec 3<>/dev/tcp/127.0.0.1/6333) 2>/dev/null || exit 1"]
+      test: ["CMD-SHELL", "timeout 5 bash -c 'echo > /dev/tcp/127.0.0.1/6333' 2>/dev/null || exit 1"]
       interval: 15s
       timeout: 10s
-      retries: 6
+      retries: 5
       start_period: 30s
     profiles:
       - memory
@@ -99,11 +102,11 @@ services:
     environment:
       - BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health >/dev/null 2>&1 || curl -fsS http://127.0.0.1:8080/ >/dev/null 2>&1 || (exec 3<>/dev/tcp/127.0.0.1/8080) 2>/dev/null || exit 1"]
+      test: ["CMD-SHELL", "timeout 5 bash -c 'echo > /dev/tcp/127.0.0.1/8080' 2>/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 6
-      start_period: 30s
+      retries: 5
+      start_period: 45s
     profiles:
       - bifrost
 
@@ -119,11 +122,11 @@ services:
       - PORT=${CLIPROXYAPI_PORT:-8317}
       - HOST=0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models >/dev/null 2>&1 || curl -fsS http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/ >/dev/null 2>&1 || wget -q --spider http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/ 2>/dev/null || (exec 3<>/dev/tcp/127.0.0.1/${CLIPROXYAPI_PORT:-8317}) 2>/dev/null || exit 1"]
+      test: ["CMD-SHELL", "timeout 5 bash -c 'echo > /dev/tcp/127.0.0.1/8317' 2>/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 6
-      start_period: 30s
+      retries: 5
+      start_period: 45s
     profiles:
       - cliproxyapi
 
