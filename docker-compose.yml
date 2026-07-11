@@ -76,13 +76,13 @@ services:
     image: maximhq/bifrost:v2.0.0-prerelease1-ubi9
     restart: unless-stopped
     ports:
-      - "${BIFROST_PORT:-8081}:8080"
+      - "${BIFROST_PORT:-8081}:8081"
     volumes:
       - bifrost-data:/data
     environment:
       - BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/v1/models || wget -qO- http://localhost:8080/v1/models > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/v1/models || wget -qO- http://localhost:8081/v1/models > /dev/null || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
