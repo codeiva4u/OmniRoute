@@ -13,42 +13,27 @@ x-common: &common
   volumes:
     - omniroute-data:/app/data
   healthcheck:
-    test: ["CMD-SHELL", "curl -f http://127.0.0.1:20128 || wget -q -O /dev/null http://127.0.0.1:20128 || exit 1"]
+    test: ["CMD", "node", "healthcheck.mjs"]
     interval: 30s
-    timeout: 15s
+    timeout: 10s
     retries: 5
-    start_period: 180s
+    start_period: 90s
 
 services:
   redis:
-    image: redis:latest
+    image: docker.io/library/redis:latest
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
-  omniroute:
-    image: diegosouzapw/omniroute:latest-web
-    restart: unless-stopped
-    ports:
-      - "20128:20128"
-      - "20129:20129"
-    environment:
-      - DATA_DIR=/app/data
-      - PORT=20128
-      - API_HOST=0.0.0.0
-      - CLI_MODE=disabled
-    volumes:
-      - omniroute-data:/app/data
-      - browser-data:/app/browsers
-    depends_on:
-      - redis
-
-volumes:
-  redis-data:
-  omniroute-data:
-  browser-data:
   omniroute-web:
     <<: *common
     image: diegosouzapw/omniroute:latest-web
@@ -67,8 +52,6 @@ volumes:
     volumes:
       - omniroute-data:/app/data
       - browser-data:/app/browsers
-    depends_on:
-      - redis
     profiles:
       - web
 
