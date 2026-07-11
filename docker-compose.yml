@@ -73,7 +73,7 @@ services:
       - memory
 
   bifrost:
-    image: maximhq/bifrost:latest
+    image: maximhq/bifrost:v2.0.0-prerelease1-ubi9
     restart: unless-stopped
     ports:
       - "${BIFROST_PORT:-8080}:8080"
