@@ -12,6 +12,12 @@ x-common: &common
     - COMPOSE_PROFILES=${COMPOSE_PROFILES:-web,memory,bifrost,cliproxyapi}
   volumes:
     - omniroute-data:/app/data
+  healthcheck:
+    test: ["CMD-SHELL", "wget -q --spider http://localhost:${PORT:-20128}/ || curl -f http://localhost:${PORT:-20128}/ || exit 1"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+    start_period: 60s
 
 services:
   redis:
@@ -22,7 +28,10 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      disable: true
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   omniroute-web:
     <<: *common
@@ -43,8 +52,6 @@ services:
       - browser-data:/app/browsers
     profiles:
       - web
-    healthcheck:
-      disable: true
 
   qdrant:
     image: docker.io/qdrant/qdrant:latest
@@ -59,7 +66,10 @@ services:
     profiles:
       - memory
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6333/readyz || curl -f http://127.0.0.1:6333/readyz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
   bifrost:
     image: maximhq/bifrost:v2.0.0-prerelease1-ubi9
@@ -73,7 +83,10 @@ services:
     profiles:
       - bifrost
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/ || curl -f http://127.0.0.1:8080/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
   cliproxyapi:
     image: eceasy/cli-proxy-api:v7.2.66
@@ -91,7 +104,10 @@ services:
     profiles:
       - cliproxyapi
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || curl -f http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
 volumes:
   cliproxyapi-data:
