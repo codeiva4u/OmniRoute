@@ -1,7 +1,3 @@
-# ──────────────────────────────────────────────────────────────────────
-#  OmniRoute — Docker Compose (FIXED)
-# ──────────────────────────────────────────────────────────────────────
-
 x-common: &common
   restart: unless-stopped
   stop_grace_period: 40s
@@ -15,18 +11,17 @@ x-common: &common
     - REDIS_URL=${REDIS_URL:-redis://redis:6379}
     - COMPOSE_PROFILES=${COMPOSE_PROFILES:-web,memory,bifrost,cliproxyapi}
   volumes:
-    - ./data:/app/data
+    - omniroute-data:/app/data
   healthcheck:
     test: ["CMD", "node", "healthcheck.mjs"]
     interval: 30s
     timeout: 10s
     retries: 3
-    start_period: 60s  # Increased from 15s
+    start_period: 60s
 
 services:
   redis:
     image: docker.io/library/redis:latest
-    container_name: omniroute-redis
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -39,10 +34,8 @@ services:
       timeout: 5s
       retries: 3
 
-  # FIXED: Added missing service name
   omniroute-host:
     <<: *common
-    container_name: omniroute
     image: diegosouzapw/omniroute:latest
     ports:
       - "${DASHBOARD_PORT:-20128}:${DASHBOARD_PORT:-20128}"
@@ -58,7 +51,7 @@ services:
       - CLI_CONFIG_HOME=/host-home
       - CLI_ALLOW_CONFIG_WRITES=true
     volumes:
-      - ./data:/app/data
+      - omniroute-data:/app/data
       - ~/.local/bin:/host-local/bin:ro
       - ~/.codex:/host-home/.codex:rw
       - ~/.claude:/host-home/.claude:rw
@@ -71,7 +64,6 @@ services:
 
   qdrant:
     image: docker.io/qdrant/qdrant:latest
-    container_name: omniroute-qdrant
     restart: unless-stopped
     ports:
       - "${QDRANT_PORT:-6333}:6333"
@@ -81,8 +73,7 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      # FIXED: Use TCP check instead of wget (wget not available in Qdrant image)
-      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:6333/readyz || curl -f http://127.0.0.1:6333/readyz || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -92,7 +83,6 @@ services:
 
   bifrost:
     image: maximhq/bifrost:v2.0.0-prerelease1-ubi9
-    container_name: omniroute-bifrost
     restart: unless-stopped
     ports:
       - "${BIFROST_PORT:-8081}:8080"
@@ -101,9 +91,8 @@ services:
     environment:
       - BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}
     healthcheck:
-      # FIXED: Use container port 8080 (not host port 8081) + curl instead of wget
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/v1/models"]
-      interval: 30s
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || curl -f http://127.0.0.1:8080/ || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
       start_period: 15s
@@ -111,20 +100,21 @@ services:
       - bifrost
 
   cliproxyapi:
-    container_name: cliproxyapi
     image: eceasy/cli-proxy-api:v7.2.66
     restart: unless-stopped
     ports:
       - "${CLIPROXYAPI_PORT:-8317}:${CLIPROXYAPI_PORT:-8317}"
     volumes:
       - cliproxyapi-data:/root/.cli-proxy-api
+    configs:
+      - source: cliproxyapi_config
+        target: /CLIProxyAPI/config.yaml
     environment:
       - PORT=${CLIPROXYAPI_PORT:-8317}
       - HOST=0.0.0.0
     healthcheck:
-      # FIXED: Use curl instead of wget --spider
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models"]
-      interval: 30s
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || curl -f http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
       start_period: 10s
@@ -140,3 +130,11 @@ volumes:
     name: omniroute-qdrant-data
   bifrost-data:
     name: omniroute-bifrost-data
+  omniroute-data:
+    name: omniroute-data
+
+configs:
+  cliproxyapi_config:
+    content: |
+      host: "0.0.0.0"
+      port: 8317
