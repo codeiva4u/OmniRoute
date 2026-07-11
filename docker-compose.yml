@@ -76,7 +76,7 @@ services:
     image: maximhq/bifrost:v2.0.0-prerelease1-ubi9
     restart: unless-stopped
     ports:
-      - "${BIFROST_PORT:-8080}:8080"
+      - "${BIFROST_PORT:-8081}:8080"
     volumes:
       - bifrost-data:/data
     environment:
