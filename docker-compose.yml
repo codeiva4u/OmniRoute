@@ -21,19 +21,34 @@ x-common: &common
 
 services:
   redis:
-    image: docker.io/library/redis:latest
+    image: redis:latest
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6379:6379"
     volumes:
       - redis-data:/data
-    command: redis-server --save 60 1 --loglevel warning
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
+  omniroute:
+    image: diegosouzapw/omniroute:latest-web
+    restart: unless-stopped
+    ports:
+      - "20128:20128"
+      - "20129:20129"
+    environment:
+      - DATA_DIR=/app/data
+      - PORT=20128
+      - API_HOST=0.0.0.0
+      - CLI_MODE=disabled
+    volumes:
+      - omniroute-data:/app/data
+      - browser-data:/app/browsers
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
+  omniroute-data:
+  browser-data:
   omniroute-web:
     <<: *common
     image: diegosouzapw/omniroute:latest-web
