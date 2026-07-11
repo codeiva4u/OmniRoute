@@ -1,5 +1,5 @@
 # ──────────────────────────────────────────────────────────────────────
-#  OmniRoute — Docker Compose (Corrected for Coolify)
+#  OmniRoute — Docker Compose (FIXED)
 # ──────────────────────────────────────────────────────────────────────
 
 x-common: &common
@@ -19,12 +19,11 @@ x-common: &common
   healthcheck:
     test: ["CMD", "node", "healthcheck.mjs"]
     interval: 30s
-    timeout: 10s       # 5s से बढ़ाकर 10s किया
-    retries: 5         # 3 से बढ़ाकर 5 किया
-    start_period: 60s  # 15s से बढ़ाकर 60s किया (ताकि ऐप पूरी तरह बूट हो जाए)
+    timeout: 10s
+    retries: 3
+    start_period: 60s  # Increased from 15s
 
 services:
-  # ── Redis (Rate Limiter Backend) ──────────────────────────────────
   redis:
     image: docker.io/library/redis:latest
     container_name: omniroute-redis
@@ -40,7 +39,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── Profile: host ─────────────────────────────────────────────────
+  # FIXED: Added missing service name
   omniroute-host:
     <<: *common
     container_name: omniroute
@@ -70,7 +69,6 @@ services:
     profiles:
       - host
 
-  # ── Profile: memory (Qdrant) ──────────────────────────────────────
   qdrant:
     image: docker.io/qdrant/qdrant:latest
     container_name: omniroute-qdrant
@@ -83,7 +81,7 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      # Qdrant image में wget/curl नहीं होता, इसलिए official TCP check का उपयोग करें
+      # FIXED: Use TCP check instead of wget (wget not available in Qdrant image)
       test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
       interval: 15s
       timeout: 5s
@@ -92,7 +90,6 @@ services:
     profiles:
       - memory
 
-  # ── Profile: bifrost ──────────────────────────────────────────────
   bifrost:
     image: maximhq/bifrost:v2.0.0-prerelease1-ubi9
     container_name: omniroute-bifrost
@@ -104,9 +101,8 @@ services:
     environment:
       - BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}
     healthcheck:
-      # पोर्ट 8081 (Host) की जगह 8080 (Container) होगा। 
-      # HEAD request (--spider) की जगह GET request (-O /dev/null) का उपयोग करें
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/v1/models"]
+      # FIXED: Use container port 8080 (not host port 8081) + curl instead of wget
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/v1/models"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -114,7 +110,6 @@ services:
     profiles:
       - bifrost
 
-  # ── Profile: cliproxyapi ──────────────────────────────────────────
   cliproxyapi:
     container_name: cliproxyapi
     image: eceasy/cli-proxy-api:v7.2.66
@@ -127,8 +122,8 @@ services:
       - PORT=${CLIPROXYAPI_PORT:-8317}
       - HOST=0.0.0.0
     healthcheck:
-      # HEAD request (--spider) की जगह GET request का उपयोग करें
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models"]
+      # FIXED: Use curl instead of wget --spider
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models"]
       interval: 30s
       timeout: 5s
       retries: 3
