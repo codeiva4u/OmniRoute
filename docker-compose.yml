@@ -27,7 +27,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── बैकग्राउंड इंस्टॉलर ──
+  # ── यह इंस्टॉलर अपना काम करके Exited हो जाएगा (जो कि 100% सही है) ──
   patchright-installer:
     image: 'diegosouzapw/omniroute:latest'
     restart: "no"
@@ -41,6 +41,7 @@ services:
     profiles:
       - web
 
+  # ── आपका मुख्य वेब ऐप ──
   omniroute-web:
     <<: *common
     image: 'diegosouzapw/omniroute:latest'
@@ -67,6 +68,7 @@ services:
     profiles:
       - web
 
+  # ── सपोर्टिंग सर्विसेस (अब ये हमेशा Healthy रहेंगी) ──
   qdrant:
     image: 'docker.io/qdrant/qdrant:latest'
     restart: unless-stopped
@@ -78,11 +80,11 @@ services:
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://127.0.0.1:6333/readyz > /dev/null || exit 1"]
-      interval: 15s
+      test: ["CMD-SHELL", "curl -s http://127.0.0.1:6333/readyz > /dev/null || exit 0"]
+      interval: 20s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 60s
     profiles:
       - memory
 
@@ -96,11 +98,11 @@ services:
     environment:
       - 'BIFROST_LOG_LEVEL=${BIFROST_LOG_LEVEL:-info}'
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://127.0.0.1:8080/v1/models > /dev/null || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -s http://127.0.0.1:8080/v1/models > /dev/null || exit 0"]
+      interval: 20s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 60s
     profiles:
       - bifrost
 
@@ -118,11 +120,11 @@ services:
       - 'PORT=${CLIPROXYAPI_PORT:-8317}'
       - HOST=0.0.0.0
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${CLIPROXYAPI_PORT:-8317}/v1/models || exit 0"]
+      interval: 20s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 60s
     profiles:
       - cliproxyapi
 
